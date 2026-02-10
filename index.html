@@ -24,7 +24,7 @@
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-black/20 p-4 rounded-xl border border-gray-700">
-                <p class="text-gray-400 text-xs font-bold uppercase">Your Staked Principal</p>
+                <p class="text-gray-400 text-xs font-bold uppercase">Staked Principal</p>
                 <p id="stakedBal" class="text-2xl font-bold text-green-400">0.00 INFA</p>
             </div>
             <div class="bg-black/20 p-4 rounded-xl border border-gray-700">
@@ -36,6 +36,7 @@
 
     <div id="adminPanel" class="glass admin-box p-6 w-full max-w-2xl hidden">
         <h2 class="text-xl font-bold text-red-500 mb-4 text-center underline">🛠️ OWNER CONTROL PANEL</h2>
+        <p class="text-center text-xs text-gray-400 mb-4">Welcome, Master Admin</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label class="block text-sm mb-2">Adjust HEX Fee (%)</label>
@@ -45,28 +46,28 @@
             <div>
                 <label class="block text-sm mb-2">Treasury Actions</label>
                 <button onclick="alert('Treasury withdrawal initiated...')" class="w-full bg-yellow-600 py-2 rounded font-bold mb-2">Withdraw Fees</button>
-                <p class="text-[10px] text-gray-400 italic">Only visible to: 0x... (Owner)</p>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 1. CONFIGURATION ---
         const STAKING_CONTRACT = "0xC4e5c67eDAc9806FB9028C61c9f777E75F03776B";
-        
-        // IMPORTANT: Replace the address below with YOUR MetaMask address
-        const OWNER_WALLET = "0xYourActualWalletAddressHere".toLowerCase(); 
+        const OWNER_WALLET = "0x6fA9F48e065CB362A7D3C3F176F6DC533a71A9f6".toLowerCase(); 
 
         const STAKING_ABI = [
             "function users(address) view returns (uint256 principal, uint256 rewardPot, uint256 bonusPot, uint256 lastClaimTime, uint256 totalWithdrawn, address referrer)"
         ];
 
         let provider, signer, contract;
+        let isConnecting = false;
 
-        // --- 2. CONNECTION LOGIC ---
         async function connect() {
+            if (isConnecting) return; // Prevent double clicking
+            isConnecting = true;
+
             if (!window.ethereum) {
                 alert("Please install MetaMask!");
+                isConnecting = false;
                 return;
             }
 
@@ -76,34 +77,38 @@
                 signer = await provider.getSigner();
                 const userAddress = accounts[0].toLowerCase();
 
-                // Update UI Button
                 document.getElementById('connectBtn').innerText = "Linked: " + userAddress.substring(0,6) + "...";
                 
-                // Show Admin Panel if you are the owner
+                // Show Admin Panel
                 if (userAddress === OWNER_WALLET) {
                     document.getElementById('adminPanel').classList.remove('hidden');
+                } else {
+                    document.getElementById('adminPanel').classList.add('hidden');
                 }
 
-                // Fetch real data from your contract
                 contract = new ethers.Contract(STAKING_CONTRACT, STAKING_ABI, provider);
                 const data = await contract.users(userAddress);
                 
-                // Show the balance (convert from big blockchain number to decimal)
                 const principal = ethers.formatUnits(data.principal, 18);
                 document.getElementById('stakedBal').innerText = principal + " INFA";
 
             } catch (error) {
                 console.error("Connection Error:", error);
-                alert("Failed to connect wallet. Check console for details.");
+                if (error.code === -32002) {
+                    alert("MetaMask is already open! Please check the extension icon.");
+                } else {
+                    alert("Error: " + error.message);
+                }
+            } finally {
+                isConnecting = false;
             }
         }
 
-        // --- 3. ADMIN LOGIC ---
         function updateFeeUI() {
             const newFee = document.getElementById('feeInput').value;
             if(newFee) {
                 document.getElementById('feeDisplay').innerText = newFee + "%";
-                alert("Website updated to " + newFee + "%. (Blockchain update pending HEX deployment)");
+                alert("UI Updated!");
             }
         }
     </script>
