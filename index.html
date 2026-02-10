@@ -3,102 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>INFA Hybrid Ecosystem</title>
+    <title>INFA Pro Hub</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #0f172a; color: white; }
+        body { background: #0f172a; color: white; font-family: sans-serif; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid #334155; border-radius: 20px; }
+        .admin-box { border: 2px solid #ef4444; background: rgba(239, 68, 68, 0.1); }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center p-4">
-    <h1 class="text-3xl font-bold my-8 text-blue-400">🚀 INFA MASTER PRO</h1>
-    
-    <div class="glass p-6 w-full max-w-md mb-6 text-center">
-        <button id="connectBtn" onclick="connect()" class="bg-blue-600 px-6 py-2 rounded-lg font-bold hover:bg-blue-500 transition">Connect Wallet</button>
-        <p id="walletStatus" class="mt-2 text-gray-400 text-sm">Not Connected</p>
+<body class="min-h-screen p-4 flex flex-col items-center">
+
+    <h1 class="text-3xl font-bold my-6 text-blue-400">🚀 INFA MASTER HUB</h1>
+
+    <div class="glass p-6 w-full max-w-2xl mb-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold">Ecosystem Dashboard</h2>
+            <button id="connectBtn" onclick="connect()" class="bg-blue-600 px-6 py-2 rounded-lg font-bold hover:bg-blue-500 transition">Connect Wallet</button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-black/20 p-4 rounded-xl border border-gray-700">
+                <p class="text-gray-400 text-xs font-bold uppercase">Your Staked Principal</p>
+                <p id="stakedBal" class="text-2xl font-bold text-green-400">0.00 INFA</p>
+            </div>
+            <div class="bg-black/20 p-4 rounded-xl border border-gray-700">
+                <p class="text-gray-400 text-xs font-bold uppercase">Exchange Fee</p>
+                <p id="feeDisplay" class="text-2xl font-bold text-blue-400">0.1%</p>
+            </div>
+        </div>
     </div>
 
-    <div class="glass p-6 w-full max-w-md mb-6">
-        <h2 class="text-xl font-bold mb-4">📈 Staking Dashboard</h2>
-        <div class="grid grid-cols-2 gap-4 mb-4 text-center">
-            <div class="bg-black/20 p-2 rounded">
-                <p class="text-xs text-gray-400">Staked</p>
-                <p id="stakedBal" class="font-bold text-green-400">0.00</p>
+    <div id="adminPanel" class="glass admin-box p-6 w-full max-w-2xl hidden">
+        <h2 class="text-xl font-bold text-red-500 mb-4 text-center underline">🛠️ OWNER CONTROL PANEL</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm mb-2">Adjust HEX Fee (%)</label>
+                <input id="feeInput" type="number" placeholder="0.1" class="w-full bg-black/40 p-2 rounded border border-red-900/50 outline-none mb-2">
+                <button onclick="updateFeeUI()" class="w-full bg-red-600 py-2 rounded font-bold">Apply Fee Change</button>
             </div>
-            <div class="bg-black/20 p-2 rounded">
-                <p class="text-xs text-gray-400">Rewards</p>
-                <p id="rewardBal" class="font-bold text-yellow-400">0.00</p>
+            <div>
+                <label class="block text-sm mb-2">Treasury Actions</label>
+                <button onclick="alert('Treasury withdrawal initiated...')" class="w-full bg-yellow-600 py-2 rounded font-bold mb-2">Withdraw Fees</button>
+                <p class="text-[10px] text-gray-400 italic">Only visible to: 0x... (Owner)</p>
             </div>
         </div>
-        <input id="stakeAmount" type="number" placeholder="Amount to Stake" class="w-full bg-black/40 p-3 rounded mb-2 outline-none border border-gray-700">
-        <button onclick="stakeTokens()" class="w-full bg-green-600 py-3 rounded-lg font-bold hover:bg-green-500">Stake Now</button>
-    </div>
-
-    <div class="glass p-6 w-full max-w-md">
-        <h2 class="text-xl font-bold mb-4 text-blue-300">🔄 Hybrid Swap</h2>
-        <div class="bg-black/30 p-4 rounded-xl mb-2">
-            <label class="text-xs text-gray-400">Sell</label>
-            <div class="flex justify-between"><input type="number" placeholder="0.0" class="bg-transparent text-xl outline-none"> <span class="font-bold">BNB</span></div>
-        </div>
-        <div class="bg-black/30 p-4 rounded-xl mb-4">
-            <label class="text-xs text-gray-400">Buy</label>
-            <div class="flex justify-between"><input type="number" placeholder="0.0" class="bg-transparent text-xl outline-none" disabled> <span class="font-bold text-blue-400">INFA</span></div>
-        </div>
-        <button onclick="swap()" class="w-full border-2 border-blue-500 py-3 rounded-lg font-bold hover:bg-blue-500/20">Swap & Mirror</button>
-        <p class="text-[10px] text-center mt-2 text-gray-500">Fee: 0.1% (Auto-feeds Staking Rewards)</p>
     </div>
 
     <script>
-        // --- SETTINGS ---
-        const CONTRACT_ADDR = "0xC4e5c67eDAc9806FB9028C61c9f777E75F03776B";
-        const INFA_TOKEN_ADDR = "0x546e9C168e6479f6D6f7347aB1990377B03776B"; // Replace with real INFA address
-        const ABI = [
-            "function stake(uint256 amount, address referrer) external",
-            "function users(address) view returns (uint256 principal, uint256 rewardPot, uint256 bonusPot, uint256 lastClaimTime, uint256 totalWithdrawn, address referrer)",
-            "function approve(address spender, uint256 amount) external returns (bool)"
+        // --- 1. CONFIGURATION ---
+        const STAKING_CONTRACT = "0xC4e5c67eDAc9806FB9028C61c9f777E75F03776B";
+        
+        // IMPORTANT: Replace the address below with YOUR MetaMask address
+        const OWNER_WALLET = "0xYourActualWalletAddressHere".toLowerCase(); 
+
+        const STAKING_ABI = [
+            "function users(address) view returns (uint256 principal, uint256 rewardPot, uint256 bonusPot, uint256 lastClaimTime, uint256 totalWithdrawn, address referrer)"
         ];
 
         let provider, signer, contract;
 
+        // --- 2. CONNECTION LOGIC ---
         async function connect() {
-            if (window.ethereum) {
+            if (!window.ethereum) {
+                alert("Please install MetaMask!");
+                return;
+            }
+
+            try {
                 provider = new ethers.BrowserProvider(window.ethereum);
                 const accounts = await provider.send("eth_requestAccounts", []);
                 signer = await provider.getSigner();
-                contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
+                const userAddress = accounts[0].toLowerCase();
+
+                // Update UI Button
+                document.getElementById('connectBtn').innerText = "Linked: " + userAddress.substring(0,6) + "...";
                 
-                document.getElementById('walletStatus').innerText = "Connected: " + accounts[0].substring(0,6) + "...";
-                document.getElementById('connectBtn').innerText = "Wallet Linked";
-                refreshData(accounts[0]);
+                // Show Admin Panel if you are the owner
+                if (userAddress === OWNER_WALLET) {
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                }
+
+                // Fetch real data from your contract
+                contract = new ethers.Contract(STAKING_CONTRACT, STAKING_ABI, provider);
+                const data = await contract.users(userAddress);
+                
+                // Show the balance (convert from big blockchain number to decimal)
+                const principal = ethers.formatUnits(data.principal, 18);
+                document.getElementById('stakedBal').innerText = principal + " INFA";
+
+            } catch (error) {
+                console.error("Connection Error:", error);
+                alert("Failed to connect wallet. Check console for details.");
             }
         }
 
-        async function refreshData(userAddr) {
-            const data = await contract.users(userAddr);
-            document.getElementById('stakedBal').innerText = ethers.formatUnits(data.principal, 18);
-            document.getElementById('rewardBal').innerText = ethers.formatUnits(data.rewardPot, 18);
-        }
-
-        async function stakeTokens() {
-            const amount = document.getElementById('stakeAmount').value;
-            const weiAmount = ethers.parseUnits(amount, 18);
-            try {
-                // FIRST: Approve the contract to take the tokens
-                const tokenContract = new ethers.Contract(INFA_TOKEN_ADDR, ["function approve(address,uint256) returns (bool)"], signer);
-                const tx1 = await tokenContract.approve(CONTRACT_ADDR, weiAmount);
-                await tx1.wait();
-                
-                // SECOND: Stake the tokens
-                const tx2 = await contract.stake(weiAmount, "0x0000000000000000000000000000000000000000");
-                await tx2.wait();
-                alert("Staking Successful!");
-                connect(); // Refresh UI
-            } catch (e) { alert("Error: " + e.message); }
-        }
-
-        function swap() {
-            alert("Swap Logic Linkage: Aggregator API connection requested. (In Progress)");
+        // --- 3. ADMIN LOGIC ---
+        function updateFeeUI() {
+            const newFee = document.getElementById('feeInput').value;
+            if(newFee) {
+                document.getElementById('feeDisplay').innerText = newFee + "%";
+                alert("Website updated to " + newFee + "%. (Blockchain update pending HEX deployment)");
+            }
         }
     </script>
 </body>
