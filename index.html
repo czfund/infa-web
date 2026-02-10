@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INFA Hybrid Ecosystem</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; background: #0f172a; color: white; text-align: center; }
+        .container { max-width: 900px; margin: auto; padding: 20px; }
+        .box { background: #1e293b; padding: 20px; border-radius: 15px; margin: 10px; border: 1px solid #334155; }
+        .green-text { color: #10b981; font-weight: bold; }
+        .btn { background: #3b82f6; border: none; padding: 10px 20px; color: white; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        .btn:hover { background: #2563eb; }
+        .grid { display: flex; justify-content: space-around; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 INFA Hybrid Ecosystem</h1>
+        
+        <div class="box">
+            <button id="connectBtn" class="btn" onclick="connectWallet()">Connect Wallet</button>
+            <p id="walletAddress" class="green-text"></p>
+        </div>
+
+        <div class="grid">
+            <div class="box">
+                <h2>📈 Staking</h2>
+                <p>Principal: <span id="principal">0.00</span> INFA</p>
+                <button class="btn">Stake Now</button>
+            </div>
+            <div class="box">
+                <h2>🔄 Hybrid Exchange</h2>
+                <p>Trading Fee: <span class="green-text">0.1%</span></p>
+                <button class="btn">Swap Tokens</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // GRADE ONE LOGIC: This talks to MetaMask
+        async function connectWallet() {
+            if (window.ethereum) {
+                try {
+                    // This asks the user for permission to see their wallet
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const account = accounts[0];
+                    
+                    // Show the wallet address on the screen
+                    document.getElementById('walletAddress').innerText = "Connected: " + account.substring(0,6) + "..." + account.substring(38);
+                    document.getElementById('connectBtn').innerText = "Wallet Linked!";
+                } catch (error) {
+                    console.error("User denied account access");
+                }
+            } else {
+                alert("Please install MetaMask to use the INFA Ecosystem!");
+            }
+        }
+    </script>
+</body>
+</html>
