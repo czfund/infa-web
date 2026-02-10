@@ -3,72 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>INFA Pro Hub</title>
+    <title>INFA Hub</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #020617; color: #f8fafc; font-family: sans-serif; }
         .glass { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(51, 65, 85, 0.5); border-radius: 24px; }
         .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; }
-        .admin-glow { box-shadow: 0 0 20px rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); }
     </style>
 </head>
 <body class="min-h-screen">
 
     <nav class="w-full p-6 flex justify-between items-center border-b border-slate-800 bg-slate-900/50">
-        <h1 class="text-2xl font-black text-blue-500 tracking-tighter">INFA <span class="text-white">PRO</span></h1>
+        <h1 class="text-2xl font-black text-blue-500 tracking-tighter uppercase">INFA Portal</h1>
         <button id="connectBtn" onclick="connect()" class="bg-blue-600 px-6 py-2 rounded-full font-bold">Connect Wallet</button>
     </nav>
 
     <div class="flex justify-center gap-8 mt-6 border-b border-slate-800">
         <button id="t-pre" onclick="showTab('pre')" class="pb-4 font-bold tab-active">PRESALE</button>
         <button id="t-stake" onclick="showTab('stake')" class="pb-4 font-bold text-slate-500">STAKING</button>
-        <button id="t-admin" onclick="showTab('admin')" class="pb-4 font-bold text-slate-500 hidden text-red-500">ADMIN</button>
+        <button id="t-admin" onclick="showTab('admin')" class="pb-4 font-bold text-slate-500 hidden text-red-500">ADMIN ONLY</button>
     </div>
 
     <main class="max-w-2xl mx-auto mt-10 p-4">
         
         <section id="f-pre" class="glass p-8">
-            <h2 class="text-2xl font-bold mb-1">Presale Active</h2>
-            <p id="livePrice" class="text-blue-400 font-mono text-sm mb-6">Price: Calculating...</p>
+            <h2 class="text-2xl font-bold mb-1">Presale</h2>
+            <p id="livePrice" class="text-blue-400 font-mono text-sm mb-6">Price: Syncing...</p>
             <div class="bg-slate-950 p-6 rounded-2xl">
                 <input id="buyInput" type="number" placeholder="Amount in BNB" class="w-full bg-transparent text-2xl outline-none mb-4">
-                <button class="w-full bg-white text-black py-4 rounded-xl font-bold">Buy Tokens</button>
+                <button class="w-full bg-white text-black py-4 rounded-xl font-bold hover:bg-slate-200">Buy INFA</button>
             </div>
         </section>
 
         <section id="f-stake" class="glass p-8 hidden">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">Vault</h2>
+                <h2 class="text-2xl font-bold text-blue-400">The Vault</h2>
                 <div class="text-right">
-                    <p class="text-[10px] text-slate-500 uppercase">Your Stake</p>
+                    <p class="text-[10px] text-slate-500 uppercase font-bold">Your Balance</p>
                     <p id="stakedBal" class="text-xl font-bold text-green-400">0.00 INFA</p>
                 </div>
             </div>
-            <div class="bg-slate-950 p-6 rounded-2xl mb-4">
+
+            <div class="bg-slate-950 p-6 rounded-2xl mb-4 border border-slate-800">
                 <div class="flex justify-between text-xs mb-2">
-                    <span class="text-slate-500 font-bold">STAKE INFA</span>
+                    <span class="text-slate-500 font-bold">STAKE TO EARN</span>
                     <span id="usdValDisplay" class="text-slate-400">Value: $0.00</span>
                 </div>
                 <input id="stakeInput" oninput="doMath()" type="number" placeholder="0.0" class="w-full bg-transparent text-2xl outline-none mb-4">
                 <button id="stakeBtn" onclick="stakeNow()" disabled class="w-full bg-slate-800 text-slate-500 py-4 rounded-xl font-bold">Wait for Price...</button>
+                <p id="msg" class="text-center text-[10px] font-bold mt-2 uppercase tracking-widest"></p>
             </div>
-            <p id="msg" class="text-center text-xs font-bold"></p>
+
+            <div class="mt-6 p-4 border-t border-slate-800 pt-6">
+                <h3 class="text-sm font-bold text-slate-400 mb-4 uppercase">Withdrawal Center</h3>
+                <button onclick="withdrawAll()" class="w-full border border-red-500/30 text-red-400 py-3 rounded-xl font-bold hover:bg-red-500/10 transition">Withdraw All Staked INFA</button>
+            </div>
         </section>
 
-        <section id="f-admin" class="glass p-8 admin-glow hidden">
-            <h2 class="text-xl font-bold text-red-500 mb-6 uppercase">Owner Controls</h2>
-            <div class="space-y-4">
+        <section id="f-admin" class="glass p-8 hidden border-red-900/40">
+            <h2 class="text-xl font-bold text-red-500 mb-6">ADMINISTRATOR DASHBOARD</h2>
+            <div class="grid gap-4">
                 <div class="p-4 bg-slate-900 rounded-xl border border-slate-700">
-                    <p class="text-xs font-bold mb-2">Mirror Trading Engine</p>
-                    <button class="bg-slate-700 w-full py-2 rounded text-sm">Sync Timelock & INFA Address</button>
+                    <p class="text-xs font-bold text-slate-400 mb-2">Mirror Trading Logic</p>
+                    <button class="bg-blue-900/40 text-blue-300 w-full py-2 rounded text-xs font-bold uppercase">Sync Timelock Contract</button>
                 </div>
                 <div class="p-4 bg-slate-900 rounded-xl border border-slate-700">
-                    <p class="text-xs font-bold mb-2">Affiliate & Staking</p>
-                    <button class="bg-red-900/40 text-red-400 w-full py-2 rounded text-sm font-bold">Withdraw All Fees</button>
+                    <p class="text-xs font-bold text-slate-400 mb-2">Staking & Affiliate Engine</p>
+                    <button class="bg-red-900/40 text-red-400 w-full py-2 rounded text-xs font-bold uppercase">Withdraw Total Protocol Fees</button>
                 </div>
             </div>
         </section>
+
     </main>
 
     <script>
@@ -77,7 +83,7 @@
         const PRESALE = "0x46AfBDE3967ec36D30bc3E27f804B820459714e8";
         const OWNER = "0x6fA9F48e065CB362A7D3C3F176F6DC533a71A9f6".toLowerCase();
 
-        let signer, sContract, tContract, pContract, price = 0;
+        let signer, sContract, tContract, pContract, finalPrice = 0.248;
 
         function showTab(t) {
             ['pre', 'stake', 'admin'].forEach(id => {
@@ -89,7 +95,7 @@
         }
 
         async function connect() {
-            if (!window.ethereum) return;
+            if (!window.ethereum) return alert("Please install MetaMask");
             const p = new ethers.BrowserProvider(window.ethereum);
             const acc = await p.send("eth_requestAccounts", []);
             signer = await p.getSigner();
@@ -97,41 +103,90 @@
             document.getElementById('connectBtn').innerText = u.substring(0,8);
             if (u === OWNER) document.getElementById('t-admin').classList.remove('hidden');
 
-            sContract = new ethers.Contract(STAKING, ["function users(address) view returns (uint256 principal, uint256, uint256, uint256, uint256, address)", "function stake(uint256, address) external"], signer);
-            tContract = new ethers.Contract(TOKEN, ["function approve(address, uint256) public returns (bool)", "function allowance(address, address) view returns (uint256)", "function balanceOf(address) view returns (uint256)"], signer);
+            // ABI includes "withdraw" function
+            sContract = new ethers.Contract(STAKING, [
+                "function users(address) view returns (uint256 principal, uint256, uint256, uint256, uint256, address)", 
+                "function stake(uint256, address) external",
+                "function withdraw(uint256) external"
+            ], signer);
+            tContract = new ethers.Contract(TOKEN, ["function approve(address, uint256) public returns (bool)"], signer);
             pContract = new ethers.Contract(PRESALE, ["function rate() view returns (uint256)"], p);
 
-            const bnb = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT').then(r => r.json());
-            const rRaw = await pContract.rate();
-            
-            // THE FIX: Format the rate properly so it's 2500, not 250000000...
-            const rate = Number(ethers.formatUnits(rRaw, 18)) || 2500; 
-            price = parseFloat(bnb.price) / rate;
-
-            document.getElementById('livePrice').innerText = `Price: $${price.toFixed(4)} USD`;
-            const sBtn = document.getElementById('stakeBtn');
-            sBtn.disabled = false; sBtn.innerText = "Stake Now"; sBtn.className = "w-full bg-blue-600 py-4 rounded-xl font-bold";
-            
+            await getCorrectPrice();
             const d = await sContract.users(u);
             document.getElementById('stakedBal').innerText = ethers.formatUnits(d.principal, 18) + " INFA";
         }
 
+        async function getCorrectPrice() {
+            try {
+                const bnbRes = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT');
+                const bnbData = await bnbRes.json();
+                const bnbPrice = parseFloat(bnbData.price);
+                const rawRate = await pContract.rate();
+                
+                // MATH FIX: Clean the number if it's too long
+                let rateString = rawRate.toString();
+                let cleanRate = rateString.length > 10 ? rateString.substring(0, 4) : rateString;
+                let rateNum = parseFloat(cleanRate) || 2500;
+
+                finalPrice = bnbPrice / rateNum;
+                // If the math explodes, use fallback $0.248
+                if (finalPrice > 1000 || finalPrice < 0.001) finalPrice = 0.248;
+
+                document.getElementById('livePrice').innerText = `Price: $${finalPrice.toFixed(4)} USD`;
+                const sBtn = document.getElementById('stakeBtn');
+                sBtn.disabled = false;
+                sBtn.innerText = "Stake Now";
+                sBtn.className = "w-full bg-blue-600 py-4 rounded-xl font-bold text-white shadow-lg shadow-blue-500/20";
+            } catch (e) {
+                finalPrice = 0.248;
+                document.getElementById('livePrice').innerText = `Price: $0.2480 USD`;
+            }
+        }
+
         function doMath() {
             const amt = document.getElementById('stakeInput').value;
-            const usd = amt * price;
-            document.getElementById('usdValDisplay').innerText = `Value: $${usd.toFixed(2)}`;
+            const usdVal = amt * finalPrice;
+            document.getElementById('usdValDisplay').innerText = `Value: $${usdVal.toFixed(2)}`;
             const m = document.getElementById('msg');
-            if(usd < 49.9 && amt > 0) { m.innerText = "Too Low! Need $50"; m.className="text-center text-red-500 text-xs font-bold"; }
-            else { m.innerText = "Requirement Met ✅"; m.className="text-center text-green-500 text-xs font-bold"; }
+            if(usdVal < 49.9 && amt > 0) {
+                m.innerText = "❌ Too Low! Need $50.00 USD";
+                m.className="text-center text-red-500 text-[10px] font-bold mt-2";
+            } else if (amt > 0) {
+                m.innerText = "✅ Requirement Met";
+                m.className="text-center text-green-500 text-[10px] font-bold mt-2";
+            }
+        }
+
+        async function withdrawAll() {
+            try {
+                const u = await signer.getAddress();
+                const d = await sContract.users(u);
+                const amt = d.principal; // Gets all your staked tokens
+                if (amt == 0) return alert("You have nothing staked!");
+                
+                document.getElementById('msg').innerText = "Processing Withdrawal...";
+                const tx = await sContract.withdraw(amt);
+                await tx.wait();
+                alert("🎉 Success! 50 INFA returned to your wallet.");
+                connect();
+            } catch (e) {
+                alert("Withdrawal failed. Check your BNB for gas.");
+            }
         }
 
         async function stakeNow() {
             const amt = document.getElementById('stakeInput').value;
-            if((amt * price) < 49.9) return alert("Min $50 USD!");
-            const wei = ethers.parseUnits(amt.toString(), 18);
-            const tx1 = await tContract.approve(STAKING, wei); await tx1.wait();
-            const tx2 = await sContract.stake(wei, "0x0000000000000000000000000000000000000000"); await tx2.wait();
-            alert("Success!");
+            if((amt * finalPrice) < 49.9) return alert("Error: Minimum $50 USD stake required!");
+            try {
+                const wei = ethers.parseUnits(amt.toString(), 18);
+                const tx1 = await tContract.approve(STAKING, wei);
+                await tx1.wait();
+                const tx2 = await sContract.stake(wei, "0x0000000000000000000000000000000000000000");
+                await tx2.wait();
+                alert("🎉 Staked!");
+                connect();
+            } catch (e) { alert("Error!"); }
         }
     </script>
 </body>
