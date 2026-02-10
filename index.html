@@ -77,31 +77,51 @@
 
         async function stakeNow() {
     const amount = document.getElementById('stakeInput').value;
-    if(!amount || amount <= 0) { alert("Enter an amount!"); return; }
-    if(!contract) { alert("Connect wallet first!"); return; }
+    if(!amount || amount <= 0) { alert("Please enter a valid amount!"); return; }
+    if(!signer) { alert("Please connect your wallet first!"); return; }
 
     try {
         const weiAmount = ethers.parseUnits(amount, 18);
         
-        // 1. Talk to the TOKEN contract first (The INFA Token itself)
-        const INFA_TOKEN_ADDR = "0x546e9C168e6479f6D6f7347aB1990377B03776B"; // Make sure this is your TOKEN address
-        const tokenAbi = ["function approve(address spender, uint256 amount) public returns (bool)"];
+        // THIS IS YOUR REAL INFA TOKEN ADDRESS
+        const INFA_TOKEN_ADDR = "0x318761C87F1242bBAc2d2D1e52eE0e2d522C18d1"; 
+        
+        const tokenAbi = [
+            "function approve(address spender, uint256 amount) public returns (bool)",
+            "function allowance(address owner, address spender) view returns (uint256)",
+            "function balanceOf(address account) view returns (uint256)"
+        ];
+        
         const tokenContract = new ethers.Contract(INFA_TOKEN_ADDR, tokenAbi, signer);
+        const userAddress = await signer.getAddress();
+        
+        // 1. Check if you actually have the tokens
+        const balance = await tokenContract.balanceOf(userAddress);
+        if (balance < weiAmount) {
+            alert("❌ You don't have enough INFA tokens! Your balance is: " + ethers.formatUnits(balance, 18));
+            return;
+        }
 
-        alert("Step 1: Giving Permission (Approval). Please sign in MetaMask.");
-        const approveTx = await tokenContract.approve(STAKING_CONTRACT, weiAmount);
-        await approveTx.wait();
+        // 2. Check Permission (Allowance)
+        const currentAllowance = await tokenContract.allowance(userAddress, STAKING_CONTRACT);
+        if (currentAllowance < weiAmount) {
+            alert("Step 1: Approving the contract to use your INFA...");
+            const approveTx = await tokenContract.approve(STAKING_CONTRACT, weiAmount);
+            await approveTx.wait();
+            alert("✅ Approval successful!");
+        }
 
-        // 2. Now perform the actual Stake
-        alert("Step 2: Permission granted! Now Staking...");
+        // 3. Perform the actual stake
+        alert("Step 2: Sending your stake to the blockchain...");
         const tx = await contract.stake(weiAmount, "0x0000000000000000000000000000000000000000");
         await tx.wait();
         
-        alert("Success! 100 INFA Staked.");
-        connect(); // Refresh display
+        alert("🎉 Success! Your INFA has been staked.");
+        connect(); // Update display
+        
     } catch (error) {
         console.error(error);
-        alert("Staking failed. Check if you have enough INFA tokens in your wallet!");
+        alert("Staking failed. Check if you have enough BNB for gas fees!");
     }
 }
             const newFee = document.getElementById('feeInput').value;
