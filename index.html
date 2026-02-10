@@ -3,210 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>INFA Ecosystem Hub</title>
+    <title>INFA Presale Master</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #020617; color: #f8fafc; font-family: sans-serif; }
-        .glass { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(16px); border: 1px solid rgba(51, 65, 85, 0.4); border-radius: 24px; }
-        .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; }
-        .data-card { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 15px; }
+        .glass { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(51, 65, 85, 0.5); border-radius: 24px; }
+        .progress-bg { background: #1e293b; border-radius: 10px; height: 12px; overflow: hidden; }
+        .progress-bar { background: linear-gradient(90deg, #3b82f6, #60a5fa); width: 45%; height: 100%; transition: width 0.5s; }
     </style>
 </head>
-<body class="min-h-screen">
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <nav class="w-full p-6 flex justify-between items-center border-b border-slate-800 bg-slate-900/80 sticky top-0 z-50">
-        <h1 class="text-2xl font-black text-blue-500">INFA <span class="text-white">OS</span></h1>
-        <button id="connectBtn" onclick="connect()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-full font-bold transition">Connect Wallet</button>
-    </nav>
+    <div class="glass w-full max-w-lg p-8">
+        <div class="flex justify-between items-start mb-8">
+            <div>
+                <h1 class="text-3xl font-black text-white">INFA <span class="text-blue-500">PRESALE</span></h1>
+                <p id="statusBadge" class="text-[10px] font-bold bg-green-900/40 text-green-400 px-2 py-0.5 rounded mt-2 inline-block uppercase tracking-widest">Live on BSC</p>
+            </div>
+            <button id="connectBtn" onclick="connect()" class="bg-blue-600 hover:bg-blue-500 text-sm px-6 py-2 rounded-full font-bold transition">Connect</button>
+        </div>
 
-    <div class="flex justify-center gap-8 mt-6 border-b border-slate-800">
-        <button id="t-pre" onclick="showTab('pre')" class="pb-4 font-bold tab-active">PRESALE</button>
-        <button id="t-stake" onclick="showTab('stake')" class="pb-4 font-bold text-slate-500">STAKING/AFFILIATE</button>
-        <button id="t-admin" onclick="showTab('admin')" class="pb-4 font-bold text-slate-500 hidden text-red-500">SYSTEM ADMIN</button>
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                <p class="text-[10px] text-slate-500 font-bold uppercase">Token Price</p>
+                <p id="tokenPrice" class="text-lg font-bold text-blue-400">Loading...</p>
+            </div>
+            <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                <p class="text-[10px] text-slate-500 font-bold uppercase">Rate</p>
+                <p class="text-lg font-bold text-white">1 BNB = 2500 INFA</p>
+            </div>
+        </div>
+
+        <div class="mb-8">
+            <div class="flex justify-between text-xs font-bold mb-2">
+                <span class="text-slate-400">RAISED: <span id="raisedAmt">...</span> BNB</span>
+                <span class="text-slate-400">GOAL: 400 BNB</span>
+            </div>
+            <div class="progress-bg">
+                <div id="pBar" class="progress-bar" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div class="bg-slate-950 p-6 rounded-3xl border border-slate-800 mb-6">
+            <div class="flex justify-between text-xs font-bold mb-4 text-slate-500">
+                <span>INPUT: BNB</span>
+                <span>MIN: 0.06 BNB</span>
+            </div>
+            <input id="buyAmount" type="number" step="0.01" placeholder="0.1" class="w-full bg-transparent text-3xl font-bold outline-none mb-6">
+            <button onclick="buyTokens()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-blue-900/20 transition">BUY INFA TOKENS</button>
+        </div>
+
+        <p id="timer" class="text-center text-xs text-slate-500 font-mono italic">Syncing with blockchain clock...</p>
     </div>
 
-    <main class="max-w-3xl mx-auto mt-10 p-4">
-        
-        <section id="f-pre" class="glass p-8">
-            <div class="flex justify-between items-start mb-6">
-                <h2 class="text-2xl font-bold">Active Presale</h2>
-                <div class="text-right">
-                    <p id="livePrice" class="text-blue-400 font-mono text-lg font-bold">$0.0000</p>
-                    <p class="text-[10px] text-slate-500 uppercase">Current INFA Price</p>
-                </div>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-4 mb-6">
-                <div class="data-card text-center">
-                    <p class="text-[10px] text-slate-500 uppercase">Network Status</p>
-                    <p class="text-green-500 font-bold">BSC Mainnet</p>
-                </div>
-                <div class="data-card text-center">
-                    <p class="text-[10px] text-slate-500 uppercase">Presale Rate</p>
-                    <p class="text-white font-bold">1 BNB = 2500 INFA</p>
-                </div>
-            </div>
-
-            <div class="bg-slate-950 p-6 rounded-2xl border border-blue-900/30">
-                <input id="buyInput" type="number" placeholder="Amount in BNB" class="w-full bg-transparent text-2xl outline-none mb-4">
-                <button class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-blue-900/40">Purchase Tokens</button>
-            </div>
-        </section>
-
-        <section id="f-stake" class="glass p-8 hidden">
-            <h2 class="text-2xl font-bold mb-6">Staking & Affiliate</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div class="data-card">
-                    <p class="text-[10px] text-slate-500 uppercase">Your Staked Balance</p>
-                    <p id="stakedBal" class="text-2xl font-bold text-green-400">0.00 INFA</p>
-                </div>
-                <div id="affiliateBox" class="data-card">
-                    <p class="text-[10px] text-slate-500 uppercase">Referrer Address</p>
-                    <p id="refAddr" class="text-xs font-mono text-blue-300">None Linked</p>
-                </div>
-            </div>
-
-            <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
-                <div class="flex justify-between mb-2">
-                    <span class="text-xs font-bold text-slate-500">STAKE INFA (Min $50)</span>
-                    <span id="usdValDisplay" class="text-xs text-slate-400">$0.00</span>
-                </div>
-                <input id="stakeInput" oninput="doMath()" type="number" placeholder="Enter Amount" class="w-full bg-transparent text-2xl outline-none mb-4">
-                <button id="stakeBtn" onclick="stakeNow()" disabled class="w-full bg-slate-800 py-4 rounded-xl font-bold">Syncing Blockchain...</button>
-                <p id="msg" class="text-center text-[10px] mt-2 uppercase font-bold"></p>
-            </div>
-
-            <button onclick="withdrawAll()" class="w-full mt-4 text-slate-500 text-xs font-bold hover:text-red-400 transition">Request Withdrawal (Exit Vault)</button>
-        </section>
-
-        <section id="f-admin" class="glass p-8 hidden border-red-500/20">
-            <h2 class="text-xl font-bold text-red-500 mb-6 uppercase">System Infrastructure</h2>
-            
-            <div class="space-y-4 text-xs">
-                <div class="p-4 bg-slate-900 rounded-xl border border-slate-700">
-                    <p class="text-red-400 font-bold mb-1">Staking Contract (Timelock Active)</p>
-                    <p class="text-slate-500 font-mono mb-3">0xC4e5c67eDAc9806FB9028C61c9f777E75F03776B</p>
-                    <div class="flex gap-2">
-                        <button class="bg-slate-800 px-4 py-2 rounded font-bold">Manage Timelock</button>
-                        <button class="bg-red-900/40 text-red-400 px-4 py-2 rounded font-bold">Withdraw Protocol Fees</button>
-                    </div>
-                </div>
-
-                <div class="p-4 bg-slate-900 rounded-xl border border-slate-700">
-                    <p class="text-blue-400 font-bold mb-1">Mirror Trading Interface (INFA Address)</p>
-                    <p class="text-slate-500 font-mono mb-3">0x318761C87F1242bBAc2d2D1e52eE0e2d522C18d1</p>
-                    <button class="bg-slate-800 w-full py-2 rounded font-bold">Link Hybrid Exchange Logic</button>
-                </div>
-            </div>
-        </section>
-    </main>
-
     <script>
-        const STAKING = "0xC4e5c67eDAc9806FB9028C61c9f777E75F03776B";
-        const TOKEN = "0x318761C87F1242bBAc2d2D1e52eE0e2d522C18d1";
-        const PRESALE = "0x46AfBDE3967ec36D30bc3E27f804B820459714e8";
-        const OWNER = "0x6fA9F48e065CB362A7D3C3F176F6DC533a71A9f6".toLowerCase();
+        const PRESALE_ADDR = "0x46AfBDE3967ec36D30bc3E27f804B820459714e8";
+        // ABI matching exactly what you saw on BSC Scan
+        const PRESALE_ABI = [
+            "function rate() view returns (uint256)",
+            "function weiRaised() view returns (uint256)",
+            "function hardCap() view returns (uint256)",
+            "function endTime() view returns (uint256)",
+            "function buyTokens(address beneficiary) public payable"
+        ];
 
-        let signer, sContract, tContract, pContract, price = 0.248;
-
-        function showTab(t) {
-            ['pre', 'stake', 'admin'].forEach(id => {
-                document.getElementById('f-'+id).classList.add('hidden');
-                document.getElementById('t-'+id).classList.remove('tab-active', 'text-white');
-            });
-            document.getElementById('f-'+t).classList.remove('hidden');
-            document.getElementById('t-'+t).classList.add('tab-active', 'text-white');
-        }
+        let provider, signer, presaleContract;
 
         async function connect() {
-            if (!window.ethereum) return alert("MetaMask not found");
-            const p = new ethers.BrowserProvider(window.ethereum);
-            const acc = await p.send("eth_requestAccounts", []);
-            signer = await p.getSigner();
-            const u = acc[0].toLowerCase();
+            if (!window.ethereum) return alert("Please install MetaMask");
+            provider = new ethers.BrowserProvider(window.ethereum);
+            const accounts = await provider.send("eth_requestAccounts", []);
+            signer = await provider.getSigner();
+            document.getElementById('connectBtn').innerText = accounts[0].substring(0,6) + "...";
             
-            document.getElementById('connectBtn').innerText = u.substring(0,8) + "...";
-            if (u === OWNER) document.getElementById('t-admin').classList.remove('hidden');
-
-            // FULL CONTRACT DATA SYNC
-            sContract = new ethers.Contract(STAKING, [
-                "function users(address) view returns (uint256 principal, uint256 rewardPot, uint256 bonusPot, uint256 lastClaimTime, uint256 totalWithdrawn, address referrer)", 
-                "function stake(uint256, address) external",
-                "function withdraw(uint256) external"
-            ], signer);
-            
-            tContract = new ethers.Contract(TOKEN, ["function approve(address, uint256) public returns (bool)"], signer);
-            pContract = new ethers.Contract(PRESALE, ["function rate() view returns (uint256)"], p);
-
-            await syncData(u);
+            presaleContract = new ethers.Contract(PRESALE_ADDR, PRESALE_ABI, signer);
+            fetchBlockchainData();
         }
 
-        async function syncData(user) {
+        async function fetchBlockchainData() {
             try {
-                // 1. Fetch live BNB price
-                const bnb = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT').then(r => r.json());
+                // 1. Get Live Price
+                const bnbRes = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT');
+                const bnbData = await bnbRes.json();
+                const bnbPrice = parseFloat(bnbData.price);
                 
-                // 2. Fetch Staking Data (Principal + Affiliate)
-                const data = await sContract.users(user);
-                document.getElementById('stakedBal').innerText = ethers.formatUnits(data.principal, 18) + " INFA";
-                
-                // Show Referrer if it exists
-                if (data.referrer !== "0x0000000000000000000000000000000000000000") {
-                    document.getElementById('refAddr').innerText = data.referrer.substring(0,15) + "...";
-                }
+                // 2. Get Rate (Fixed at 2500)
+                const rate = 2500;
+                const tokenPrice = bnbPrice / rate;
+                document.getElementById('tokenPrice').innerText = "$" + tokenPrice.toFixed(4);
 
-                // 3. Set Price
-                const rRaw = await pContract.rate();
-                let rStr = rRaw.toString();
-                let rNum = parseFloat(rStr.length > 10 ? rStr.substring(0, 4) : rStr);
-                price = parseFloat(bnb.price) / rNum;
-                if (price > 1000 || price < 0.001) price = 0.248;
-
-                document.getElementById('livePrice').innerText = `$${price.toFixed(4)}`;
+                // 3. Get Raised Amount & HardCap
+                const raisedWei = await presaleContract.weiRaised();
+                const hardCapWei = await presaleContract.hardCap();
                 
-                const sBtn = document.getElementById('stakeBtn');
-                sBtn.disabled = false;
-                sBtn.innerText = "Stake Now";
-                sBtn.className = "w-full bg-blue-600 py-4 rounded-xl font-bold text-white shadow-lg";
-            } catch (e) { console.error(e); }
+                const raisedBNB = parseFloat(ethers.formatEther(raisedWei));
+                const hardCapBNB = parseFloat(ethers.formatEther(hardCapWei));
+                
+                document.getElementById('raisedAmt').innerText = raisedBNB.toFixed(2);
+                const progress = (raisedBNB / hardCapBNB) * 100;
+                document.getElementById('pBar').style.width = progress + "%";
+
+                // 4. Get End Time
+                const endTime = await presaleContract.endTime();
+                const date = new Date(Number(endTime) * 1000);
+                document.getElementById('timer').innerText = "Presale Ends: " + date.toLocaleDateString();
+
+            } catch (e) { console.error("Data Fetch Error:", e); }
         }
 
-        function doMath() {
-            const amt = document.getElementById('stakeInput').value;
-            const usdVal = amt * price;
-            document.getElementById('usdValDisplay').innerText = `$${usdVal.toFixed(2)}`;
-            const m = document.getElementById('msg');
-            if(usdVal < 49.9 && amt > 0) {
-                m.innerText = "⚠️ Minimum $50.00 USD Required";
-                m.className="text-center text-red-500 text-[10px] font-bold mt-2";
-            } else if (amt > 0) {
-                m.innerText = "✅ Goal Met";
-                m.className="text-center text-green-500 text-[10px] font-bold mt-2";
-            }
-        }
+        async function buyTokens() {
+            const amount = document.getElementById('buyAmount').value;
+            if (amount < 0.06) return alert("Minimum buy is 0.06 BNB");
 
-        async function withdrawAll() {
-            const u = await signer.getAddress();
-            const data = await sContract.users(u);
-            if(data.principal == 0) return alert("Nothing to withdraw!");
-            const tx = await sContract.withdraw(data.principal);
-            await tx.wait();
-            alert("Success!");
-            syncData(u);
-        }
-
-        async function stakeNow() {
-            const amt = document.getElementById('stakeInput').value;
-            if((amt * price) < 49.9) return alert("Min $50 USD!");
-            const wei = ethers.parseUnits(amt.toString(), 18);
-            const tx1 = await tContract.approve(STAKING, wei);
-            await tx1.wait();
-            const tx2 = await sContract.stake(wei, "0x0000000000000000000000000000000000000000");
-            await tx2.wait();
-            alert("Staked!");
-            syncData(await signer.getAddress());
+            try {
+                const tx = await presaleContract.buyTokens(await signer.getAddress(), {
+                    value: ethers.parseEther(amount.toString())
+                });
+                alert("Transaction Sent! Waiting for confirmation...");
+                await tx.wait();
+                alert("🎉 Success! You bought INFA tokens.");
+                fetchBlockchainData();
+            } catch (e) { alert("Transaction Failed"); }
         }
     </script>
 </body>
