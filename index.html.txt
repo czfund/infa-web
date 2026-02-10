@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INFA Hybrid Exchange</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; background: #0f172a; color: white; text-align: center; }
+        .container { max-width: 900px; margin: auto; padding: 20px; }
+        .box { background: #1e293b; padding: 20px; border-radius: 15px; margin: 10px; border: 1px solid #334155; }
+        .green-text { color: #10b981; font-weight: bold; }
+        .btn { background: #3b82f6; border: none; padding: 10px 20px; color: white; border-radius: 8px; cursor: pointer; }
+        .grid { display: flex; justify-content: space-around; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 INFA Hybrid Ecosystem</h1>
+        
+        <div
