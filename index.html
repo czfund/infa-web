@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>INFA Pro Hub</title>
+    <title>INFA Hybrid Ecosystem</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #0f172a; color: white; font-family: sans-serif; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid #334155; border-radius: 20px; }
         .admin-box { border: 2px solid #ef4444; background: rgba(239, 68, 68, 0.1); }
-        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
 <body class="min-h-screen p-4 flex flex-col items-center">
@@ -35,7 +34,7 @@
         </div>
 
         <div class="bg-black/30 p-4 rounded-xl border border-white/5 mb-4">
-            <h3 class="text-sm font-bold text-gray-300 mb-3">STAKING ACTION</h3>
+            <h3 class="text-sm font-bold text-gray-300 mb-3">STAKING</h3>
             <div class="flex gap-2">
                 <input id="stakeInput" type="number" placeholder="Amount to Stake" class="flex-1 bg-black/40 p-3 rounded-lg outline-none border border-gray-600 focus:border-blue-500">
                 <button onclick="stakeNow()" class="bg-green-600 px-6 py-3 rounded-lg font-bold hover:bg-green-500 transition">Stake Now</button>
@@ -64,71 +63,90 @@
     </div>
 
     <script>
+        // --- ADDRESSES ---
         const STAKING_CONTRACT = "0xC4e5c67eDAc9806FB9028C61c9f777E75F03776B";
+        const INFA_TOKEN_ADDR = "0x318761C87F1242bBAc2d2D1e52eE0e2d522C18d1";
         const OWNER_WALLET = "0x6fA9F48e065CB362A7D3C3F176F6DC533a71A9f6".toLowerCase(); 
 
+        // --- ABIs (Instructions) ---
         const STAKING_ABI = [
             "function users(address) view returns (uint256 principal, uint256 rewardPot, uint256 bonusPot, uint256 lastClaimTime, uint256 totalWithdrawn, address referrer)",
             "function stake(uint256 amount, address referrer) external"
         ];
-
-        let provider, signer, contract;
-        let isConnecting = false;
-
-        async function stakeNow() {
-    const amount = document.getElementById('stakeInput').value;
-    if(!amount || amount <= 0) { alert("Please enter a valid amount!"); return; }
-    if(!signer) { alert("Please connect your wallet first!"); return; }
-
-    try {
-        const weiAmount = ethers.parseUnits(amount, 18);
-        
-        // THIS IS YOUR REAL INFA TOKEN ADDRESS
-        const INFA_TOKEN_ADDR = "0x318761C87F1242bBAc2d2D1e52eE0e2d522C18d1"; 
-        
-        const tokenAbi = [
+        const TOKEN_ABI = [
             "function approve(address spender, uint256 amount) public returns (bool)",
             "function allowance(address owner, address spender) view returns (uint256)",
             "function balanceOf(address account) view returns (uint256)"
         ];
-        
-        const tokenContract = new ethers.Contract(INFA_TOKEN_ADDR, tokenAbi, signer);
-        const userAddress = await signer.getAddress();
-        
-        // 1. Check if you actually have the tokens
-        const balance = await tokenContract.balanceOf(userAddress);
-        if (balance < weiAmount) {
-            alert("❌ You don't have enough INFA tokens! Your balance is: " + ethers.formatUnits(balance, 18));
-            return;
-        }
 
-        // 2. Check Permission (Allowance)
-        const currentAllowance = await tokenContract.allowance(userAddress, STAKING_CONTRACT);
-        if (currentAllowance < weiAmount) {
-            alert("Step 1: Approving the contract to use your INFA...");
-            const approveTx = await tokenContract.approve(STAKING_CONTRACT, weiAmount);
-            await approveTx.wait();
-            alert("✅ Approval successful!");
-        }
+        let provider, signer, stakingContract, tokenContract;
 
-        // 3. Perform the actual stake
-        alert("Step 2: Sending your stake to the blockchain...");
-        const tx = await contract.stake(weiAmount, "0x0000000000000000000000000000000000000000");
-        await tx.wait();
-        
-        alert("🎉 Success! Your INFA has been staked.");
-        connect(); // Update display
-        
-    } catch (error) {
-        console.error(error);
-        alert("Staking failed. Check if you have enough BNB for gas fees!");
-    }
-}
-            const newFee = document.getElementById('feeInput').value;
-            if(newFee) {
-                document.getElementById('feeDisplay').innerText = newFee + "%";
-                alert("UI Updated!");
+        // --- CONNECT LOGIC ---
+        async function connect() {
+            if (!window.ethereum) { alert("Please install MetaMask!"); return; }
+            try {
+                provider = new ethers.BrowserProvider(window.ethereum);
+                const accounts = await provider.send("eth_requestAccounts", []);
+                signer = await provider.getSigner();
+                const userAddress = accounts[0].toLowerCase();
+
+                document.getElementById('connectBtn').innerText = "Linked: " + userAddress.substring(0,6) + "...";
+                
+                if (userAddress === OWNER_WALLET) {
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                }
+
+                stakingContract = new ethers.Contract(STAKING_CONTRACT, STAKING_ABI, signer);
+                tokenContract = new ethers.Contract(INFA_TOKEN_ADDR, TOKEN_ABI, signer);
+                
+                const data = await stakingContract.users(userAddress);
+                document.getElementById('stakedBal').innerText = ethers.formatUnits(data.principal, 18) + " INFA";
+
+            } catch (error) {
+                console.error(error);
+                alert("Connection failed!");
             }
+        }
+
+        // --- STAKE LOGIC ---
+        async function stakeNow() {
+            const amount = document.getElementById('stakeInput').value;
+            if(!amount || amount <= 0) { alert("Enter amount!"); return; }
+            if(!signer) { alert("Connect wallet first!"); return; }
+
+            try {
+                const weiAmount = ethers.parseUnits(amount, 18);
+                const userAddress = await signer.getAddress();
+                
+                // Check Balance
+                const balance = await tokenContract.balanceOf(userAddress);
+                if (balance < weiAmount) {
+                    alert("❌ Not enough INFA tokens!"); return;
+                }
+
+                // Check Permission
+                const allowance = await tokenContract.allowance(userAddress, STAKING_CONTRACT);
+                if (allowance < weiAmount) {
+                    alert("Step 1: Approving INFA...");
+                    const tx1 = await tokenContract.approve(STAKING_CONTRACT, weiAmount);
+                    await tx1.wait();
+                }
+
+                // Stake
+                alert("Step 2: Staking...");
+                const tx2 = await stakingContract.stake(weiAmount, "0x0000000000000000000000000000000000000000");
+                await tx2.wait();
+                alert("🎉 Staked!");
+                connect();
+            } catch (error) {
+                console.error(error);
+                alert("Error during staking.");
+            }
+        }
+
+        function updateFeeUI() {
+            const val = document.getElementById('feeInput').value;
+            if(val) document.getElementById('feeDisplay').innerText = val + "%";
         }
     </script>
 </body>
