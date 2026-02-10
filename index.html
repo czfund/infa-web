@@ -2,130 +2,81 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>INFA Presale Master</title>
+    <title>INFA V3 - Official Presale</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background: #020617; color: #f8fafc; font-family: sans-serif; }
-        .glass { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(51, 65, 85, 0.5); border-radius: 24px; }
-        .progress-bg { background: #1e293b; border-radius: 10px; height: 12px; overflow: hidden; }
-        .progress-bar { background: linear-gradient(90deg, #3b82f6, #60a5fa); width: 45%; height: 100%; transition: width 0.5s; }
-    </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-950 text-white font-sans p-4">
 
-    <div class="glass w-full max-w-lg p-8">
-        <div class="flex justify-between items-start mb-8">
-            <div>
-                <h1 class="text-3xl font-black text-white">INFA <span class="text-blue-500">PRESALE</span></h1>
-                <p id="statusBadge" class="text-[10px] font-bold bg-green-900/40 text-green-400 px-2 py-0.5 rounded mt-2 inline-block uppercase tracking-widest">Live on BSC</p>
-            </div>
-            <button id="connectBtn" onclick="connect()" class="bg-blue-600 hover:bg-blue-500 text-sm px-6 py-2 rounded-full font-bold transition">Connect</button>
-        </div>
+    <div class="max-w-xl mx-auto bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl mt-10">
+        <h1 class="text-3xl font-black mb-2">INFA <span class="text-blue-500">V3</span></h1>
+        <p class="text-xs text-slate-500 mb-8 font-mono">Contract: 0x46Af...14e8</p>
 
         <div class="grid grid-cols-2 gap-4 mb-8">
-            <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
-                <p class="text-[10px] text-slate-500 font-bold uppercase">Token Price</p>
-                <p id="tokenPrice" class="text-lg font-bold text-blue-400">Loading...</p>
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <p class="text-[10px] text-slate-500 uppercase font-bold">Raised</p>
+                <p id="raisedBNB" class="text-xl font-mono">0.00 BNB</p>
             </div>
-            <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
-                <p class="text-[10px] text-slate-500 font-bold uppercase">Rate</p>
-                <p class="text-lg font-bold text-white">1 BNB = 2500 INFA</p>
-            </div>
-        </div>
-
-        <div class="mb-8">
-            <div class="flex justify-between text-xs font-bold mb-2">
-                <span class="text-slate-400">RAISED: <span id="raisedAmt">...</span> BNB</span>
-                <span class="text-slate-400">GOAL: 400 BNB</span>
-            </div>
-            <div class="progress-bg">
-                <div id="pBar" class="progress-bar" style="width: 0%"></div>
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <p class="text-[10px] text-slate-500 uppercase font-bold">Hard Cap</p>
+                <p id="hardCapBNB" class="text-xl font-mono">0.00 BNB</p>
             </div>
         </div>
 
-        <div class="bg-slate-950 p-6 rounded-3xl border border-slate-800 mb-6">
-            <div class="flex justify-between text-xs font-bold mb-4 text-slate-500">
-                <span>INPUT: BNB</span>
-                <span>MIN: 0.06 BNB</span>
-            </div>
-            <input id="buyAmount" type="number" step="0.01" placeholder="0.1" class="w-full bg-transparent text-3xl font-bold outline-none mb-6">
-            <button onclick="buyTokens()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-blue-900/20 transition">BUY INFA TOKENS</button>
+        <div class="space-y-4">
+            <input id="buyAmt" type="number" placeholder="Amount in BNB" class="w-full bg-slate-950 border border-slate-700 p-4 rounded-xl outline-none focus:border-blue-500 text-2xl font-bold">
+            <button onclick="buyNow()" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-black text-lg transition shadow-lg shadow-blue-900/20">BUY TOKENS</button>
+            <p id="minMsg" class="text-center text-[10px] text-slate-500 italic">Minimum: Fetching...</p>
         </div>
-
-        <p id="timer" class="text-center text-xs text-slate-500 font-mono italic">Syncing with blockchain clock...</p>
     </div>
 
     <script>
-        const PRESALE_ADDR = "0x46AfBDE3967ec36D30bc3E27f804B820459714e8";
-        // ABI matching exactly what you saw on BSC Scan
-        const PRESALE_ABI = [
-            "function rate() view returns (uint256)",
-            "function weiRaised() view returns (uint256)",
-            "function hardCap() view returns (uint256)",
-            "function endTime() view returns (uint256)",
-            "function buyTokens(address beneficiary) public payable"
+        const PRE_ADDR = "0x46AfBDE3967ec36D30bc3E27f804B820459714e8";
+        // Exact names from your Solidity source code:
+        const PRE_ABI = [
+            "function raisedBNB() view returns (uint256)",
+            "function hardCapBNB() view returns (uint256)",
+            "function minBuyBNB() view returns (uint256)",
+            "function buy(address affiliate) external payable"
         ];
 
-        let provider, signer, presaleContract;
+        let provider, signer, contract;
 
         async function connect() {
-            if (!window.ethereum) return alert("Please install MetaMask");
+            if (!window.ethereum) return alert("MetaMask needed");
             provider = new ethers.BrowserProvider(window.ethereum);
-            const accounts = await provider.send("eth_requestAccounts", []);
             signer = await provider.getSigner();
-            document.getElementById('connectBtn').innerText = accounts[0].substring(0,6) + "...";
-            
-            presaleContract = new ethers.Contract(PRESALE_ADDR, PRESALE_ABI, signer);
-            fetchBlockchainData();
+            contract = new ethers.Contract(PRE_ADDR, PRE_ABI, signer);
+            sync();
         }
 
-        async function fetchBlockchainData() {
-            try {
-                // 1. Get Live Price
-                const bnbRes = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT');
-                const bnbData = await bnbRes.json();
-                const bnbPrice = parseFloat(bnbData.price);
-                
-                // 2. Get Rate (Fixed at 2500)
-                const rate = 2500;
-                const tokenPrice = bnbPrice / rate;
-                document.getElementById('tokenPrice').innerText = "$" + tokenPrice.toFixed(4);
+        async function sync() {
+            // Using the exact variables from your .sol file
+            const raised = await contract.raisedBNB();
+            const cap = await contract.hardCapBNB();
+            const min = await contract.minBuyBNB();
 
-                // 3. Get Raised Amount & HardCap
-                const raisedWei = await presaleContract.weiRaised();
-                const hardCapWei = await presaleContract.hardCap();
-                
-                const raisedBNB = parseFloat(ethers.formatEther(raisedWei));
-                const hardCapBNB = parseFloat(ethers.formatEther(hardCapWei));
-                
-                document.getElementById('raisedAmt').innerText = raisedBNB.toFixed(2);
-                const progress = (raisedBNB / hardCapBNB) * 100;
-                document.getElementById('pBar').style.width = progress + "%";
-
-                // 4. Get End Time
-                const endTime = await presaleContract.endTime();
-                const date = new Date(Number(endTime) * 1000);
-                document.getElementById('timer').innerText = "Presale Ends: " + date.toLocaleDateString();
-
-            } catch (e) { console.error("Data Fetch Error:", e); }
+            document.getElementById('raisedBNB').innerText = ethers.formatEther(raised) + " BNB";
+            document.getElementById('hardCapBNB').innerText = ethers.formatEther(cap) + " BNB";
+            document.getElementById('minMsg').innerText = "Minimum: " + ethers.formatEther(min) + " BNB";
         }
 
-        async function buyTokens() {
-            const amount = document.getElementById('buyAmount').value;
-            if (amount < 0.06) return alert("Minimum buy is 0.06 BNB");
-
+        async function buyNow() {
+            const amt = document.getElementById('buyAmt').value;
+            if(!amt) return;
             try {
-                const tx = await presaleContract.buyTokens(await signer.getAddress(), {
-                    value: ethers.parseEther(amount.toString())
+                // Your contract requires an affiliate address. 
+                // We use the 'Zero Address' if no one referred them.
+                const tx = await contract.buy("0x0000000000000000000000000000000000000000", {
+                    value: ethers.parseEther(amt.toString())
                 });
-                alert("Transaction Sent! Waiting for confirmation...");
                 await tx.wait();
-                alert("🎉 Success! You bought INFA tokens.");
-                fetchBlockchainData();
-            } catch (e) { alert("Transaction Failed"); }
+                alert("Success!");
+                sync();
+            } catch (e) { alert("Error: Check your balance or min buy"); }
         }
+
+        window.onload = connect; // Auto-connect attempt
     </script>
 </body>
 </html>
