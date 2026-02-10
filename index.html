@@ -4,57 +4,101 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>INFA Hybrid Ecosystem</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Arial', sans-serif; background: #0f172a; color: white; text-align: center; }
-        .container { max-width: 900px; margin: auto; padding: 20px; }
-        .box { background: #1e293b; padding: 20px; border-radius: 15px; margin: 10px; border: 1px solid #334155; }
-        .green-text { color: #10b981; font-weight: bold; }
-        .btn { background: #3b82f6; border: none; padding: 10px 20px; color: white; border-radius: 8px; cursor: pointer; transition: 0.3s; }
-        .btn:hover { background: #2563eb; }
-        .grid { display: flex; justify-content: space-around; flex-wrap: wrap; }
+        body { background: #0f172a; color: white; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid #334155; border-radius: 20px; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>🚀 INFA Hybrid Ecosystem</h1>
-        
-        <div class="box">
-            <button id="connectBtn" class="btn" onclick="connectWallet()">Connect Wallet</button>
-            <p id="walletAddress" class="green-text"></p>
-        </div>
+<body class="min-h-screen flex flex-col items-center p-4">
+    <h1 class="text-3xl font-bold my-8 text-blue-400">🚀 INFA MASTER PRO</h1>
+    
+    <div class="glass p-6 w-full max-w-md mb-6 text-center">
+        <button id="connectBtn" onclick="connect()" class="bg-blue-600 px-6 py-2 rounded-lg font-bold hover:bg-blue-500 transition">Connect Wallet</button>
+        <p id="walletStatus" class="mt-2 text-gray-400 text-sm">Not Connected</p>
+    </div>
 
-        <div class="grid">
-            <div class="box">
-                <h2>📈 Staking</h2>
-                <p>Principal: <span id="principal">0.00</span> INFA</p>
-                <button class="btn">Stake Now</button>
+    <div class="glass p-6 w-full max-w-md mb-6">
+        <h2 class="text-xl font-bold mb-4">📈 Staking Dashboard</h2>
+        <div class="grid grid-cols-2 gap-4 mb-4 text-center">
+            <div class="bg-black/20 p-2 rounded">
+                <p class="text-xs text-gray-400">Staked</p>
+                <p id="stakedBal" class="font-bold text-green-400">0.00</p>
             </div>
-            <div class="box">
-                <h2>🔄 Hybrid Exchange</h2>
-                <p>Trading Fee: <span class="green-text">0.1%</span></p>
-                <button class="btn">Swap Tokens</button>
+            <div class="bg-black/20 p-2 rounded">
+                <p class="text-xs text-gray-400">Rewards</p>
+                <p id="rewardBal" class="font-bold text-yellow-400">0.00</p>
             </div>
         </div>
+        <input id="stakeAmount" type="number" placeholder="Amount to Stake" class="w-full bg-black/40 p-3 rounded mb-2 outline-none border border-gray-700">
+        <button onclick="stakeTokens()" class="w-full bg-green-600 py-3 rounded-lg font-bold hover:bg-green-500">Stake Now</button>
+    </div>
+
+    <div class="glass p-6 w-full max-w-md">
+        <h2 class="text-xl font-bold mb-4 text-blue-300">🔄 Hybrid Swap</h2>
+        <div class="bg-black/30 p-4 rounded-xl mb-2">
+            <label class="text-xs text-gray-400">Sell</label>
+            <div class="flex justify-between"><input type="number" placeholder="0.0" class="bg-transparent text-xl outline-none"> <span class="font-bold">BNB</span></div>
+        </div>
+        <div class="bg-black/30 p-4 rounded-xl mb-4">
+            <label class="text-xs text-gray-400">Buy</label>
+            <div class="flex justify-between"><input type="number" placeholder="0.0" class="bg-transparent text-xl outline-none" disabled> <span class="font-bold text-blue-400">INFA</span></div>
+        </div>
+        <button onclick="swap()" class="w-full border-2 border-blue-500 py-3 rounded-lg font-bold hover:bg-blue-500/20">Swap & Mirror</button>
+        <p class="text-[10px] text-center mt-2 text-gray-500">Fee: 0.1% (Auto-feeds Staking Rewards)</p>
     </div>
 
     <script>
-        // GRADE ONE LOGIC: This talks to MetaMask
-        async function connectWallet() {
+        // --- SETTINGS ---
+        const CONTRACT_ADDR = "0xC4e5c67eDAc9806FB9028C61c9f777E75F03776B";
+        const INFA_TOKEN_ADDR = "0x546e9C168e6479f6D6f7347aB1990377B03776B"; // Replace with real INFA address
+        const ABI = [
+            "function stake(uint256 amount, address referrer) external",
+            "function users(address) view returns (uint256 principal, uint256 rewardPot, uint256 bonusPot, uint256 lastClaimTime, uint256 totalWithdrawn, address referrer)",
+            "function approve(address spender, uint256 amount) external returns (bool)"
+        ];
+
+        let provider, signer, contract;
+
+        async function connect() {
             if (window.ethereum) {
-                try {
-                    // This asks the user for permission to see their wallet
-                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    const account = accounts[0];
-                    
-                    // Show the wallet address on the screen
-                    document.getElementById('walletAddress').innerText = "Connected: " + account.substring(0,6) + "..." + account.substring(38);
-                    document.getElementById('connectBtn').innerText = "Wallet Linked!";
-                } catch (error) {
-                    console.error("User denied account access");
-                }
-            } else {
-                alert("Please install MetaMask to use the INFA Ecosystem!");
+                provider = new ethers.BrowserProvider(window.ethereum);
+                const accounts = await provider.send("eth_requestAccounts", []);
+                signer = await provider.getSigner();
+                contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
+                
+                document.getElementById('walletStatus').innerText = "Connected: " + accounts[0].substring(0,6) + "...";
+                document.getElementById('connectBtn').innerText = "Wallet Linked";
+                refreshData(accounts[0]);
             }
+        }
+
+        async function refreshData(userAddr) {
+            const data = await contract.users(userAddr);
+            document.getElementById('stakedBal').innerText = ethers.formatUnits(data.principal, 18);
+            document.getElementById('rewardBal').innerText = ethers.formatUnits(data.rewardPot, 18);
+        }
+
+        async function stakeTokens() {
+            const amount = document.getElementById('stakeAmount').value;
+            const weiAmount = ethers.parseUnits(amount, 18);
+            try {
+                // FIRST: Approve the contract to take the tokens
+                const tokenContract = new ethers.Contract(INFA_TOKEN_ADDR, ["function approve(address,uint256) returns (bool)"], signer);
+                const tx1 = await tokenContract.approve(CONTRACT_ADDR, weiAmount);
+                await tx1.wait();
+                
+                // SECOND: Stake the tokens
+                const tx2 = await contract.stake(weiAmount, "0x0000000000000000000000000000000000000000");
+                await tx2.wait();
+                alert("Staking Successful!");
+                connect(); // Refresh UI
+            } catch (e) { alert("Error: " + e.message); }
+        }
+
+        function swap() {
+            alert("Swap Logic Linkage: Aggregator API connection requested. (In Progress)");
         }
     </script>
 </body>
