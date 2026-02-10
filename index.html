@@ -10,6 +10,7 @@
         body { background: #0f172a; color: white; font-family: sans-serif; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid #334155; border-radius: 20px; }
         .admin-box { border: 2px solid #ef4444; background: rgba(239, 68, 68, 0.1); }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
 <body class="min-h-screen p-4 flex flex-col items-center">
@@ -22,21 +23,33 @@
             <button id="connectBtn" onclick="connect()" class="bg-blue-600 px-6 py-2 rounded-lg font-bold hover:bg-blue-500 transition">Connect Wallet</button>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-black/20 p-4 rounded-xl border border-gray-700">
-                <p class="text-gray-400 text-xs font-bold uppercase">Staked Principal</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="bg-black/20 p-4 rounded-xl border border-gray-700 text-center">
+                <p class="text-gray-400 text-xs font-bold uppercase mb-1">Staked Principal</p>
                 <p id="stakedBal" class="text-2xl font-bold text-green-400">0.00 INFA</p>
             </div>
-            <div class="bg-black/20 p-4 rounded-xl border border-gray-700">
-                <p class="text-gray-400 text-xs font-bold uppercase">Exchange Fee</p>
+            <div class="bg-black/20 p-4 rounded-xl border border-gray-700 text-center">
+                <p class="text-gray-400 text-xs font-bold uppercase mb-1">Exchange Fee</p>
                 <p id="feeDisplay" class="text-2xl font-bold text-blue-400">0.1%</p>
             </div>
+        </div>
+
+        <div class="bg-black/30 p-4 rounded-xl border border-white/5 mb-4">
+            <h3 class="text-sm font-bold text-gray-300 mb-3">STAKING ACTION</h3>
+            <div class="flex gap-2">
+                <input id="stakeInput" type="number" placeholder="Amount to Stake" class="flex-1 bg-black/40 p-3 rounded-lg outline-none border border-gray-600 focus:border-blue-500">
+                <button onclick="stakeNow()" class="bg-green-600 px-6 py-3 rounded-lg font-bold hover:bg-green-500 transition">Stake Now</button>
+            </div>
+        </div>
+
+        <div class="bg-black/30 p-4 rounded-xl border border-white/5">
+            <h3 class="text-sm font-bold text-gray-300 mb-3">HYBRID EXCHANGE</h3>
+            <button onclick="alert('Redirecting to Hybrid Aggregator...')" class="w-full bg-blue-600 py-3 rounded-lg font-bold hover:bg-blue-500 transition">Swap Tokens</button>
         </div>
     </div>
 
     <div id="adminPanel" class="glass admin-box p-6 w-full max-w-2xl hidden">
         <h2 class="text-xl font-bold text-red-500 mb-4 text-center underline">🛠️ OWNER CONTROL PANEL</h2>
-        <p class="text-center text-xs text-gray-400 mb-4">Welcome, Master Admin</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label class="block text-sm mb-2">Adjust HEX Fee (%)</label>
@@ -55,21 +68,17 @@
         const OWNER_WALLET = "0x6fA9F48e065CB362A7D3C3F176F6DC533a71A9f6".toLowerCase(); 
 
         const STAKING_ABI = [
-            "function users(address) view returns (uint256 principal, uint256 rewardPot, uint256 bonusPot, uint256 lastClaimTime, uint256 totalWithdrawn, address referrer)"
+            "function users(address) view returns (uint256 principal, uint256 rewardPot, uint256 bonusPot, uint256 lastClaimTime, uint256 totalWithdrawn, address referrer)",
+            "function stake(uint256 amount, address referrer) external"
         ];
 
         let provider, signer, contract;
         let isConnecting = false;
 
         async function connect() {
-            if (isConnecting) return; // Prevent double clicking
+            if (isConnecting) return;
             isConnecting = true;
-
-            if (!window.ethereum) {
-                alert("Please install MetaMask!");
-                isConnecting = false;
-                return;
-            }
+            if (!window.ethereum) { alert("Please install MetaMask!"); isConnecting = false; return; }
 
             try {
                 provider = new ethers.BrowserProvider(window.ethereum);
@@ -79,28 +88,36 @@
 
                 document.getElementById('connectBtn').innerText = "Linked: " + userAddress.substring(0,6) + "...";
                 
-                // Show Admin Panel
                 if (userAddress === OWNER_WALLET) {
                     document.getElementById('adminPanel').classList.remove('hidden');
-                } else {
-                    document.getElementById('adminPanel').classList.add('hidden');
                 }
 
-                contract = new ethers.Contract(STAKING_CONTRACT, STAKING_ABI, provider);
+                contract = new ethers.Contract(STAKING_CONTRACT, STAKING_ABI, signer);
                 const data = await contract.users(userAddress);
-                
-                const principal = ethers.formatUnits(data.principal, 18);
-                document.getElementById('stakedBal').innerText = principal + " INFA";
+                document.getElementById('stakedBal').innerText = ethers.formatUnits(data.principal, 18) + " INFA";
 
             } catch (error) {
                 console.error("Connection Error:", error);
-                if (error.code === -32002) {
-                    alert("MetaMask is already open! Please check the extension icon.");
-                } else {
-                    alert("Error: " + error.message);
-                }
+                alert("Error: " + error.message);
             } finally {
                 isConnecting = false;
+            }
+        }
+
+        async function stakeNow() {
+            const amount = document.getElementById('stakeInput').value;
+            if(!amount || amount <= 0) { alert("Enter an amount!"); return; }
+            if(!contract) { alert("Connect wallet first!"); return; }
+
+            try {
+                const weiAmount = ethers.parseUnits(amount, 18);
+                const tx = await contract.stake(weiAmount, "0x0000000000000000000000000000000000000000");
+                alert("Transaction sent! Wait for confirmation.");
+                await tx.wait();
+                alert("Staking Successful!");
+                connect(); // Refresh balance
+            } catch (error) {
+                alert("Staking failed: " + error.message);
             }
         }
 
